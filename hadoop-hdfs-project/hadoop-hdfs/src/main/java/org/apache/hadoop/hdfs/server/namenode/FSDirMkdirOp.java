@@ -85,6 +85,7 @@ class FSDirMkdirOp {
           List<String> ancestors = nonExisting.subList(0, length - 1);
           // Ensure that the user can traversal the path by adding implicit
           // u+wx permission to all ancestor directories
+          // CQ: 07 【创建目录】【双缓冲写】
           existing = createChildrenDirectories(fsd, existing, ancestors,
               addImplicitUwx(permissions, permissions));
           if (existing == null) {
@@ -161,6 +162,7 @@ class FSDirMkdirOp {
     assert fsd.hasWriteLock();
 
     for (String component : children) {
+      // CQ: 08 【创建目录】【双缓冲写】
       existing = createSingleDirectory(fsd, existing, component, perm);
       if (existing == null) {
         return null;
@@ -198,6 +200,7 @@ class FSDirMkdirOp {
     NameNode.getNameNodeMetrics().incrFilesCreated();
 
     String cur = existing.getPath();
+    // CQ: 09 【创建目录】【双缓冲写】 写 edit_log
     fsd.getEditLog().logMkDir(cur, newNode);
     if (NameNode.stateChangeLog.isDebugEnabled()) {
       NameNode.stateChangeLog.debug("mkdirs: created directory " + cur);

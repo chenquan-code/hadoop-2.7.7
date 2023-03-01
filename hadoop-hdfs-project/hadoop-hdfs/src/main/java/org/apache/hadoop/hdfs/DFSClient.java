@@ -2981,6 +2981,7 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
       permission = FsPermission.getDefault();
     }
     FsPermission masked = permission.applyUMask(dfsClientConf.uMask);
+    // CQ: 03 【创建目录】【双缓冲写】
     return primitiveMkdir(src, masked, createParent);
   }
 
@@ -3011,6 +3012,7 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
     }
     TraceScope scope = Trace.startSpan("mkdir", traceSampler);
     try {
+      // CQ: 04 【创建目录】【双缓冲写】
       return namenode.mkdirs(src, absPermission, createParent);
     } catch(RemoteException re) {
       throw re.unwrapRemoteException(AccessControlException.class,

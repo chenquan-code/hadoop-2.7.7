@@ -441,17 +441,20 @@ public class FSEditLog implements LogsPurgeable {
    */
   void logEdit(final FSEditLogOp op) {
     boolean needsSync = false;
+    // CQ: 01 【双缓冲写】 分段锁 1  加锁的目的就是为了事务ID的唯一，而且是递增
     synchronized (this) {
       assert isOpenForWrite() :
         "bad state: " + state;
       
       // wait if an automatic sync is scheduled
       waitIfAutoSyncScheduled();
-      
+
+      // CQ: 01 【双缓冲写】 这里会对事务ID txid ++ 操作，分段锁 1 的主要目的就是想让这个 txid 自增有序
       long start = beginTransaction();
       op.setTransactionId(txid);
 
       try {
+        // CQ: 01 【双缓冲写】 写内存 写完就释放锁，所以这里速度很快
         editLogStream.write(op);
       } catch (IOException ex) {
         // All journals failed, it is handled in logSync.
@@ -466,10 +469,12 @@ public class FSEditLog implements LogsPurgeable {
       if (needsSync) {
         isAutoSyncScheduled = true;
       }
+      // CQ: 01 【双缓冲写】 分段锁 1 释放
     }
     
     // Sync the log if an automatic sync is required.
     if (needsSync) {
+      // CQ: 01 【双缓冲写】 刷写磁盘 和 Quorum Journal Manager
       logSync();
     }
   }
@@ -627,16 +632,22 @@ public class FSEditLog implements LogsPurgeable {
     long syncStart = 0;
 
     // Fetch the transactionId of this thread. 
+    // CQ: 02 【双缓冲写】 获取前面得到的 txid
     long mytxid = myTransactionId.get().txid;
     
     boolean sync = false;
     try {
       EditLogOutputStream logStream = null;
+      // CQ: 02 【双缓冲写】 分段锁 2
       synchronized (this) {
         try {
           printStatistics(false);
 
           // if somebody is already syncing, then wait
+          // CQ: 02 【双缓冲写】 判断是否有人正在把数据同步到磁盘上面 虽然我拿到锁了，但上一位拿到锁的大哥可能还没写完磁盘，所以我就先等等
+          // CQ: 02 【双缓冲写】 mytxid > synctxid 意思是：如果我当前的事务ID小于正在刷磁盘的最大ID,说明已经有人帮我刷写磁盘了，可能我走得慢，我后面的线程比我抢先到了这里
+          // CQ: 02 【双缓冲写】 那他们怎么能帮我刷写数据呢？原因是在前面第一把锁的时候我已经把数据写到内存了了，我后面的老哥在我到来这里之间把我超车了，导致他抢先异步起刷写，反正有人刷写就行了，任务完成，该走了
+          // CQ: 02 【双缓冲写】 如果我的 mytxid > synctxid，说明在我之后的老哥没有赶超我，我是第一个到的，那我就等上一批正在写的老哥写完我就去写
           while (mytxid > synctxid && isSyncRunning) {
             try {
               wait(1000);
@@ -666,6 +677,7 @@ public class FSEditLog implements LogsPurgeable {
             if (journalSet.isEmpty()) {
               throw new IOException("No journals available to flush");
             }
+            // CQ: 02 【双缓冲写】 交换缓冲区，这就是为什么叫 双缓冲写 了
             editLogStream.setReadyToFlush();
           } catch (IOException e) {
             final String msg =
@@ -685,12 +697,13 @@ public class FSEditLog implements LogsPurgeable {
         //editLogStream may become null,
         //so store a local variable for flush.
         logStream = editLogStream;
-      }
+      } // CQ: 02 【双缓冲写】 分段锁 2 释放，此时已经把空的缓冲区 切换给 后面的老哥写了，预计他们不会那么快写满，所以我可以慢慢刷磁盘了
       
       // do the sync
       long start = monotonicNow();
       try {
         if (logStream != null) {
+          // CQ: 02 【双缓冲写】 真正到了刷写磁盘和Journal的时候了，底层用的是 FileOutputStream，为什么不用 NIO?
           logStream.flush();
         }
       } catch (IOException ex) {
@@ -859,6 +872,7 @@ public class FSEditLog implements LogsPurgeable {
     if (x != null) {
       op.setXAttrs(x.getXAttrs());
     }
+    // CQ: 10 【创建目录】【双缓冲写】
     logEdit(op);
   }
   

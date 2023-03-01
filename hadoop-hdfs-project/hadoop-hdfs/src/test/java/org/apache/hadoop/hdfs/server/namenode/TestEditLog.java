@@ -1105,8 +1105,9 @@ public class TestEditLog {
     /**
      * Construct the failure specification. 
      * @param roll number to fail after. e.g. 1 to fail after the first roll
-     * @param loginfo index of journal to fail. 
+     * @param logindex index of journal to fail.
      */
+    // CQ: 【PR】 单词错误
     AbortSpec(int roll, int logindex) {
       this.roll = roll;
       this.logindex = logindex;

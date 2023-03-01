@@ -1033,6 +1033,7 @@ public class DistributedFileSystem extends FileSystem {
    */
   @Override
   public boolean mkdirs(Path f, FsPermission permission) throws IOException {
+    // CQ: 02 【创建目录】【双缓冲写】
     return mkdirsInternal(f, permission, true);
   }
 
@@ -1044,6 +1045,7 @@ public class DistributedFileSystem extends FileSystem {
       @Override
       public Boolean doCall(final Path p)
           throws IOException, UnresolvedLinkException {
+        // CQ: 02 【创建目录】【双缓冲写】
         return dfs.mkdirs(getPathName(p), permission, createParent);
       }
 

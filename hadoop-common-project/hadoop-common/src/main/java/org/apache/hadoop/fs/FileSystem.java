@@ -1877,6 +1877,7 @@ public abstract class FileSystem extends Configured implements Closeable {
    * Call {@link #mkdirs(Path, FsPermission)} with default permission.
    */
   public boolean mkdirs(Path f) throws IOException {
+    // CQ: 01 【创建目录】【双缓冲写】
     return mkdirs(f, FsPermission.getDirDefault());
   }
 
