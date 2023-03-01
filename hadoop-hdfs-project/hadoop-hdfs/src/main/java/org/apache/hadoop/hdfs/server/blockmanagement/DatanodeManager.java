@@ -1417,6 +1417,7 @@ public class DatanodeManager {
               pendingList));
         }
         //check block invalidation
+        // CQ: 【删除文件】 10  获取失效的Block，生成删除块的命令，通过心跳，发送给 DataNode
         Block[] blks = nodeinfo.getInvalidateBlocks(blockInvalidateLimit);
         if (blks != null) {
           cmds.add(new BlockCommand(DatanodeProtocol.DNA_INVALIDATE,

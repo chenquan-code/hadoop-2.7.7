@@ -1349,6 +1349,7 @@ public abstract class FileSystem extends Configured implements Closeable {
    */
   @Deprecated
   public boolean delete(Path f) throws IOException {
+    // CQ:【删除文件】 01
     return delete(f, true);
   }
   

@@ -3368,6 +3368,7 @@ public class BlockManager {
     // from the namespace, since the removal of the associated
     // file already removes them from the block map below.
     block.setNumBytes(BlockCommand.NO_ACK);
+    // CQ:【删除数据】 09  加到invalidateBlocks中，等待datanode下次心跳的时候生成删除命令发给datanode,然后删除具体的数据块
     addToInvalidates(block);
     removeBlockFromMap(block);
     // Remove the block from pendingReplications and neededReplications

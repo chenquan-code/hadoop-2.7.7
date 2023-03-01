@@ -950,6 +950,7 @@ class NameNodeRpcServer implements NamenodeProtocols {
 
     boolean ret = false;
     try {
+        // CQ:【删除文件】 04
       ret = namesystem.delete(src, recursive, cacheEntry != null);
     } finally {
       RetryCache.setState(cacheEntry, ret);

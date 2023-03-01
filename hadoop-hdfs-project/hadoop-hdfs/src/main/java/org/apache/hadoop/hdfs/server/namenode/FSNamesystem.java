@@ -3687,6 +3687,7 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean,
     try {
       checkOperation(OperationCategory.WRITE);
       checkNameNodeSafeMode("Cannot delete " + src);
+      // CQ:【删除文件】 05  从命名空间删除相应的文件 返回需要删除的块
       toRemovedBlocks = FSDirDeleteOp.delete(
           this, src, recursive, logRetryCache);
       ret = toRemovedBlocks != null;
@@ -3696,8 +3697,10 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean,
     } finally {
       writeUnlock(operationName);
     }
+    // CQ:【删除文件】 05 将删除操作记录到 editlog 中
     getEditLog().logSync();
     if (toRemovedBlocks != null) {
+      // CQ:【删除文件】 05 删除数据块
       removeBlocks(toRemovedBlocks); // Incremental deletion of blocks
     }
     logAuditEvent(true, operationName, src);

@@ -52,6 +52,7 @@ class FSDirDeleteOp {
       } else {
         List<INodeDirectory> snapshottableDirs = new ArrayList<>();
         FSDirSnapshotOp.checkSnapshot(iip.getLastINode(), snapshottableDirs);
+        // CQ:【删除文件】 08  核心代码 这个时候删除只是将该文件从命名空间中删除,并没有真正的写入editlog
         filesRemoved = unprotectedDelete(fsd, iip, collectedBlocks,
                                          removedINodes, mtime);
         fsd.getFSNamesystem().removeSnapshottableDirs(snapshottableDirs);
@@ -88,6 +89,7 @@ class FSDirDeleteOp {
                           FsAction.ALL, true);
     }
 
+    // CQ:【删除文件】 06
     return deleteInternal(fsn, src, iip, logRetryCache);
   }
 
@@ -148,14 +150,16 @@ class FSDirDeleteOp {
 
     long mtime = now();
     // Unlink the target directory from directory tree
+    // CQ:【删除文件】 07
     long filesRemoved = delete(
         fsd, iip, collectedBlocks, removedINodes, mtime);
     if (filesRemoved < 0) {
       return null;
     }
+    // CQ:【删除文件】 07 写 edit_log
     fsd.getEditLog().logDelete(src, mtime, logRetryCache);
     incrDeletedFileCount(filesRemoved);
-
+    // CQ:【删除文件】 07 删除相关的契约和索引节点
     fsn.removeLeasesAndINodes(src, removedINodes, true);
 
     if (NameNode.stateChangeLog.isDebugEnabled()) {
@@ -212,6 +216,7 @@ class FSDirDeleteOp {
     targetNode.recordModification(latestSnapshot);
 
     // Remove the node from the namespace
+    // CQ:【删除文件】 07 从命名空间删除
     long removed = fsd.removeLastINode(iip);
     if (removed == -1) {
       return -1;
@@ -227,6 +232,7 @@ class FSDirDeleteOp {
     }
 
     // collect block and update quota
+    // CQ:【删除文件】 07 收集要删除的block
     if (!targetNode.isInLatestSnapshot(latestSnapshot)) {
       targetNode.destroyAndCollectBlocks(fsd.getBlockStoragePolicySuite(),
         collectedBlocks, removedINodes);

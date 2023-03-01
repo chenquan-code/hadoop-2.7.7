@@ -2050,6 +2050,7 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
     checkOpen();
     TraceScope scope = getPathTraceScope("delete", src);
     try {
+      // CQ:【删除文件】 03
       return namenode.delete(src, recursive);
     } catch(RemoteException re) {
       throw re.unwrapRemoteException(AccessControlException.class,

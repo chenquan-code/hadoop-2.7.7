@@ -704,6 +704,7 @@ public class DistributedFileSystem extends FileSystem {
       @Override
       public Boolean doCall(final Path p)
           throws IOException, UnresolvedLinkException {
+        // CQ:【删除文件】 02
         return dfs.delete(getPathName(p), recursive);
       }
       @Override
